@@ -1,0 +1,15 @@
+{
+    "name": "de.agoxandr.mirror-steamworks",
+    "displayName": "Mirror Steamworks",
+    "version": "16.5.3",
+    "description": "Utility useful in almost any project.",
+    "keywords": [
+        "Mirror",
+        "Steamworks",
+        "Agoxandr"
+    ],
+    "dependencies": {
+        "de.agoxandr.utils": "1.0.0",
+        "nuget.mono-cecil": "1.2.0"
+    }
+}

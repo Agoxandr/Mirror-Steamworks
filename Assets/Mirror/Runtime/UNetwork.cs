@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Steamworks.Data;
 using UnityEngine;
 
 namespace Mirror
@@ -30,8 +31,8 @@ namespace Mirror
 
     public static class Channels
     {
-        public const int DefaultReliable = 0;
-        public const int DefaultUnreliable = 1;
+        public const int DefaultReliable = (int)SendType.Reliable;
+        public const int DefaultUnreliable = (int)SendType.Unreliable;
     }
 
     // -- helpers for float conversion without allocations --
