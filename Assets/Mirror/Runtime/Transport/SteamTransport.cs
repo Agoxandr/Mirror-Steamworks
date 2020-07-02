@@ -16,7 +16,6 @@ namespace Mirror.Steamworks
         [Header("Normal Socket")]
         public ushort port = 7777;
         [Header("Auth Server")]
-        public bool checkIdentity = false;
         public ushort steamPort = 7778;
         public ushort queryPort = 7779;
         public string serverName = "Test server";
@@ -221,15 +220,6 @@ namespace Mirror.Steamworks
 
         private void Initialize(ushort gamePort, ushort steamPort, ushort queryPort, string serverName, int maxPlayers)
         {
-            try
-            {
-                System.IO.File.WriteAllText("steam_appid.txt", "923440");
-            }
-            catch (System.Exception e)
-            {
-                logger.LogWarning("Couldn't write steam_appid.txt: " + e.Message);
-            }
-
             SteamServerInit init = new SteamServerInit("Conquest", "Conquest")
             {
                 GamePort = gamePort,

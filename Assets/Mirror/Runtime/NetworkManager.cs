@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -300,6 +301,7 @@ namespace Mirror
 
         public void OnSteamServersConnected()
         {
+            if (logger.LogEnabled()) logger.Log("NetworkManager OnSteamServersConnected");
             if (authenticator != null)
             {
                 authenticator.OnStartServer();
@@ -355,6 +357,12 @@ namespace Mirror
             // have the onlineScene feature, it will be asynchronous!
 
             SetupServer();
+            StartCoroutine(StartServerRoutine());
+        }
+
+        private IEnumerator StartServerRoutine()
+        {
+            yield return new WaitUntil(() => isNetworkActive);
 
             // scene change needed? then change scene and spawn afterwards.
             if (IsServerOnlineSceneChangeNeeded())
@@ -468,6 +476,12 @@ namespace Mirror
 
             // setup server first
             SetupServer();
+            StartCoroutine(StartHostRoutine());
+        }
+
+        private IEnumerator StartHostRoutine()
+        {
+            yield return new WaitUntil(() => isNetworkActive);
 
             // call OnStartHost AFTER SetupServer. this way we can use
             // NetworkServer.Spawn etc. in there too. just like OnStartServer

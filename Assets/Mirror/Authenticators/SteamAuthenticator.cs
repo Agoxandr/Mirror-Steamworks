@@ -125,7 +125,7 @@ namespace Mirror.Steamworks
             if (authResponse == AuthResponse.OK)
             {
                 // Invoke the event to complete a successful authentication
-                OnClientAuthenticated.Invoke(conn); 
+                OnClientAuthenticated.Invoke(conn);
             }
             else
             {
