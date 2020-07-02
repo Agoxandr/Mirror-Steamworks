@@ -1,16 +1,14 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using Agoxandr.Utils;
-using Mirror;
 using Steamworks;
 using Steamworks.Data;
 using UnityEngine;
 
 namespace Mirror.Steamworks
 {
-    public class SteamworksTransport : Transport
+    public class SteamTransport : Transport
     {
         [Header("Relay Socket")]
         public bool useRelay = false;
@@ -24,9 +22,11 @@ namespace Mirror.Steamworks
         public string serverName = "Test server";
         internal bool isServer;
         private bool serverActive;
-        public static SteamworksTransport instance;
+        public static SteamTransport instance;
         public ServerManager Server { get; private set; }
         public ClientManager Client { get; private set; }
+
+        private static readonly ILogger logger = LogFactory.GetLogger(typeof(SteamTransport));
 
         private void Awake()
         {
@@ -70,10 +70,7 @@ namespace Mirror.Steamworks
             public override void OnConnectionChanged(Connection connection, ConnectionInfo info)
             {
                 base.OnConnectionChanged(connection, info);
-                if (LogFilter.Debug)
-                {
-                    Debug.Log($"Server {Socket} {connection} {info.State}");
-                }
+                if (logger.LogEnabled()) logger.Log($"Server {Socket} {connection} {info.State}");
             }
 
             public override void OnDisconnected(Connection connection, ConnectionInfo info)
@@ -116,10 +113,7 @@ namespace Mirror.Steamworks
             public override void OnConnectionChanged(ConnectionInfo info)
             {
                 base.OnConnectionChanged(info);
-                if (LogFilter.Debug)
-                {
-                    Debug.Log($"Client {Connection} {info.State}");
-                }
+                if (logger.LogEnabled()) logger.Log($"Client {Connection} {info.State}");
             }
 
             public override void OnDisconnected(ConnectionInfo data)
@@ -222,8 +216,44 @@ namespace Mirror.Steamworks
         public void ServerLogOn()
         {
             isServer = true;
-            SteamServerManager.instance = new SteamServerManager();
-            SteamServerManager.instance.Initialize(port, steamPort, queryPort, serverName, NetworkManager.singleton.maxConnections);
+            Initialize(port, steamPort, queryPort, serverName, NetworkManager.singleton.maxConnections);
+        }
+
+        private void Initialize(ushort gamePort, ushort steamPort, ushort queryPort, string serverName, int maxPlayers)
+        {
+            try
+            {
+                System.IO.File.WriteAllText("steam_appid.txt", "923440");
+            }
+            catch (System.Exception e)
+            {
+                logger.LogWarning("Couldn't write steam_appid.txt: " + e.Message);
+            }
+
+            SteamServerInit init = new SteamServerInit("Conquest", "Conquest")
+            {
+                GamePort = gamePort,
+                SteamPort = steamPort,
+                QueryPort = queryPort,
+                VersionString = "1.0",
+                Secure = true
+            };
+
+            try
+            {
+                SteamServer.Init(923440, init);
+            }
+            catch (System.Exception e)
+            {
+                logger.LogWarning(e.Message);
+
+            }
+            SteamServer.ServerName = serverName;
+            SteamServer.MaxPlayers = maxPlayers;
+            SteamServer.Passworded = false;
+            SteamServer.DedicatedServer = true;
+            SteamServer.LogOnAnonymous();
+            if (logger.LogEnabled()) logger.Log("Logged on as Anonymous");
         }
 
         public override void ServerStart()
@@ -243,7 +273,6 @@ namespace Mirror.Steamworks
                     Server.Connected[i].Close();
                 }
                 Server.Close();
-                SteamServerManager.instance = null;
                 SteamServer.Shutdown();
                 Server = null;
             }

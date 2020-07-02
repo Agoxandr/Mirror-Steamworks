@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using Mirror.Steamworks;
+using Steamworks;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
@@ -223,6 +224,11 @@ namespace Mirror
 
             // setup OnSceneLoaded callback
             SceneManager.sceneLoaded += OnSceneLoaded;
+
+            if (transport is SteamTransport)
+            {
+                SteamServer.OnSteamServersConnected += OnSteamServersConnected;
+            }
         }
 
         /// <summary>
@@ -282,17 +288,17 @@ namespace Mirror
             if (runInBackground)
                 Application.runInBackground = true;
 
-            if (transport is SteamworksTransport steamworksTransport)
+            if (transport is SteamTransport steamworksTransport)
             {
                 steamworksTransport.ServerLogOn();
             }
             else
             {
-                SetupServerContinue();
+                OnSteamServersConnected();
             }
         }
 
-        public void SetupServerContinue()
+        public void OnSteamServersConnected()
         {
             if (authenticator != null)
             {

@@ -2,7 +2,7 @@
     "name": "de.agoxandr.mirror-steamworks",
     "displayName": "Mirror Steamworks",
     "version": "16.5.3",
-    "description": "Utility useful in almost any project.",
+    "description": "Mirror Networking for Facepunch Steamworks.",
     "keywords": [
         "Mirror",
         "Steamworks",
@@ -10,6 +10,6 @@
     ],
     "dependencies": {
         "de.agoxandr.utils": "1.0.0",
-        "nuget.mono-cecil": "1.2.0"
+        "nuget.mono-cecil": "0.1.6-preview"
     }
 }
