@@ -173,21 +173,6 @@ namespace Mirror.Steamworks
             return true;
         }
 
-        public override int GetMaxPacketSize(int channelId = 8)
-        {
-            switch (channelId)
-            {
-                case (int)SendType.Unreliable:
-                case (int)SendType.NoDelay:
-                    return 1300;
-                case (int)SendType.Reliable:
-                case (int)SendType.NoNagle:
-                    return 524288;
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-
         public override bool ServerActive()
         {
             return serverActive;

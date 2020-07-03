@@ -5,20 +5,14 @@ namespace Mirror
 {
     public class NetworkConnectionToServer : NetworkConnection
     {
-        static readonly ILogger logger = LogFactory.GetLogger<NetworkConnectionToServer>();
+        private static readonly ILogger logger = LogFactory.GetLogger<NetworkConnectionToServer>();
 
         public override string address => "";
 
         internal override bool Send(ArraySegment<byte> segment, int channelId = Channels.DefaultReliable)
         {
             if (logger.LogEnabled()) logger.Log("ConnectionSend " + this + " bytes:" + BitConverter.ToString(segment.Array, segment.Offset, segment.Count));
-
-            // validate packet size first.
-            if (ValidatePacketSize(segment, channelId))
-            {
-                return Transport.activeTransport.ClientSend(channelId, segment);
-            }
-            return false;
+            return Transport.activeTransport.ClientSend(channelId, segment);
         }
 
         /// <summary>
