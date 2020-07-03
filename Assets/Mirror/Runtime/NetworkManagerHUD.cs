@@ -16,7 +16,7 @@ namespace Mirror
     [HelpURL("https://mirror-networking.com/docs/Components/NetworkManagerHUD.html")]
     public class NetworkManagerHUD : MonoBehaviour
     {
-        NetworkManager manager;
+        private NetworkManager manager;
 
         /// <summary>
         /// Whether to show the default control HUD at runtime.
@@ -33,12 +33,12 @@ namespace Mirror
         /// </summary>
         public int offsetY;
 
-        void Awake()
+        private void Awake()
         {
             manager = GetComponent<NetworkManager>();
         }
 
-        void OnGUI()
+        private void OnGUI()
         {
             if (!showGUI)
                 return;
@@ -72,12 +72,12 @@ namespace Mirror
             GUILayout.EndArea();
         }
 
-        void StartButtons()
+        private void StartButtons()
         {
             if (!NetworkClient.active)
             {
                 // Server + Client
-                if (Application.platform != RuntimePlatform.WebGLPlayer)
+                if (manager.authenticator == null)
                 {
                     if (GUILayout.Button("Host (Server + Client)"))
                     {
@@ -94,16 +94,7 @@ namespace Mirror
                 manager.networkAddress = GUILayout.TextField(manager.networkAddress);
                 GUILayout.EndHorizontal();
 
-                // Server Only
-                if (Application.platform == RuntimePlatform.WebGLPlayer)
-                {
-                    // cant be a server in webgl build
-                    GUILayout.Box("(  WebGL cannot be server  )");
-                }
-                else
-                {
-                    if (GUILayout.Button("Server Only")) manager.StartServer();
-                }
+                if (GUILayout.Button("Server Only")) manager.StartServer();
             }
             else
             {
@@ -116,7 +107,7 @@ namespace Mirror
             }
         }
 
-        void StatusLabels()
+        private void StatusLabels()
         {
             // server / client status message
             if (NetworkServer.active)
@@ -129,7 +120,7 @@ namespace Mirror
             }
         }
 
-        void StopButtons()
+        private void StopButtons()
         {
             // stop host if host mode
             if (NetworkServer.active && NetworkClient.isConnected)

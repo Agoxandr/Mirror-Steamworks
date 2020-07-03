@@ -57,7 +57,7 @@ namespace Mirror.Steamworks
                 instance.OnServerConnected.Invoke(index);
                 if (Connected.Count == 1)
                 {
-                    EventManager.OnUpdated += OnUpdated;
+                    EventManager.OnLateUpdated += OnLateUpdated;
                 }
             }
 
@@ -76,7 +76,7 @@ namespace Mirror.Steamworks
             {
                 if (Connected.Count == 1)
                 {
-                    EventManager.OnUpdated -= OnUpdated;
+                    EventManager.OnLateUpdated -= OnLateUpdated;
                 }
                 instance.OnServerDisconnected.Invoke((int)connection.UserData);
                 base.OnDisconnected(connection, info);
@@ -89,7 +89,7 @@ namespace Mirror.Steamworks
                 instance.OnServerDataReceived.Invoke((int)connection.UserData, new ArraySegment<byte>(buffer), channel);
             }
 
-            private void OnUpdated()
+            private void OnLateUpdated()
             {
                 Receive();
             }
@@ -101,7 +101,7 @@ namespace Mirror.Steamworks
             {
                 base.OnConnected(info);
                 instance.OnClientConnected.Invoke();
-                EventManager.OnUpdated += OnUpdated;
+                EventManager.OnLateUpdated += OnLateUpdated;
             }
 
             public override void OnConnecting(ConnectionInfo info)
@@ -117,7 +117,7 @@ namespace Mirror.Steamworks
 
             public override void OnDisconnected(ConnectionInfo data)
             {
-                EventManager.OnUpdated -= OnUpdated;
+                EventManager.OnLateUpdated -= OnLateUpdated;
                 instance.OnClientDisconnected.Invoke();
                 base.OnDisconnected(data);
             }
@@ -129,7 +129,7 @@ namespace Mirror.Steamworks
                 instance.OnClientDataReceived.Invoke(new ArraySegment<byte>(buffer), channel);
             }
 
-            private void OnUpdated()
+            private void OnLateUpdated()
             {
                 Receive();
             }
@@ -233,7 +233,7 @@ namespace Mirror.Steamworks
             {
                 SteamServer.Init(923440, init);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 logger.LogWarning(e.Message);
 

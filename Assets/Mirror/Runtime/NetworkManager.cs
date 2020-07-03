@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using Agoxandr.Utils;
 using Mirror.Steamworks;
 using Steamworks;
 using UnityEngine;
@@ -97,7 +98,7 @@ namespace Mirror
         /// </summary>
         [FormerlySerializedAs("m_NetworkAddress")]
         [Tooltip("Network Address where the client should connect to the server. Server does not use this for anything.")]
-        public string networkAddress = "localhost";
+        public string networkAddress = "127.0.0.1";
 
         /// <summary>
         /// The maximum number of concurrent network connections to support.
@@ -246,21 +247,6 @@ namespace Mirror
             {
                 StartServer();
             }
-        }
-
-        // NetworkIdentity.UNetStaticUpdate is called from UnityEngine while LLAPI network is active.
-        // If we want TCP then we need to call it manually. Probably best from NetworkManager, although this means that we can't use NetworkServer/NetworkClient without a NetworkManager invoking Update anymore.
-        /// <summary>
-        /// virtual so that inheriting classes' LateUpdate() can call base.LateUpdate() too
-        /// </summary>
-        public virtual void LateUpdate()
-        {
-            // call it while the NetworkManager exists.
-            // -> we don't only call while Client/Server.Connected, because then we would stop if disconnected and the
-            //    NetworkClient wouldn't receive the last Disconnect event, result in all kinds of issues
-            NetworkServer.Update();
-            NetworkClient.Update();
-            UpdateScene();
         }
 
         #endregion
@@ -817,6 +803,7 @@ namespace Mirror
         /// <param name="newSceneName"></param>
         public virtual void ServerChangeScene(string newSceneName)
         {
+            EventManager.OnUpdated += OnSceneUpdated;
             if (string.IsNullOrEmpty(newSceneName))
             {
                 logger.LogError("ServerChangeScene empty scene name");
@@ -855,6 +842,7 @@ namespace Mirror
 
         internal void ClientChangeScene(string newSceneName, SceneOperation sceneOperation = SceneOperation.Normal, bool customHandling = false)
         {
+            EventManager.OnUpdated += OnSceneUpdated;
             if (string.IsNullOrEmpty(newSceneName))
             {
                 logger.LogError("ClientChangeScene empty scene name");
@@ -947,7 +935,7 @@ namespace Mirror
             }
         }
 
-        private static void UpdateScene()
+        private static void OnSceneUpdated()
         {
             if (singleton != null && loadingSceneAsync != null && loadingSceneAsync.isDone)
             {
@@ -955,6 +943,7 @@ namespace Mirror
                 singleton.FinishLoadScene();
                 loadingSceneAsync.allowSceneActivation = true;
                 loadingSceneAsync = null;
+                EventManager.OnUpdated -= OnSceneUpdated;
             }
         }
 

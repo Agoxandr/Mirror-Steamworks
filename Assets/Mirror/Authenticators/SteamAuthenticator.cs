@@ -110,6 +110,7 @@ namespace Mirror.Steamworks
         public override async void OnClientAuthenticate(NetworkConnection conn)
         {
             ticket = await SteamUser.GetAuthSessionTicketAsync();
+            if (logger.LogEnabled()) logger.LogFormat(LogType.Log, "SteamAuthenticator Got ticket!");
             AuthRequestMessage authRequestMessage = new AuthRequestMessage()
             {
                 steamId = SteamClient.SteamId.Value,

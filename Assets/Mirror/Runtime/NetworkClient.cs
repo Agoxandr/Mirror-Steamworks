@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Agoxandr.Utils;
 using UnityEngine;
 
 namespace Mirror
@@ -20,12 +21,12 @@ namespace Mirror
     /// </summary>
     public static class NetworkClient
     {
-        static readonly ILogger logger = LogFactory.GetLogger(typeof(NetworkClient));
+        private static readonly ILogger logger = LogFactory.GetLogger(typeof(NetworkClient));
 
         /// <summary>
         /// The registered network message handlers.
         /// </summary>
-        static readonly Dictionary<int, NetworkMessageDelegate> handlers = new Dictionary<int, NetworkMessageDelegate>();
+        private static readonly Dictionary<int, NetworkMessageDelegate> handlers = new Dictionary<int, NetworkMessageDelegate>();
 
         /// <summary>
         /// The NetworkConnection object this client is using.
@@ -103,6 +104,7 @@ namespace Mirror
             RegisterSystemHandlers(true);
 
             connectState = ConnectState.Connected;
+            EventManager.OnUpdated += OnLocalUpdated;
 
             // create local connection objects and connect them
             ULocalConnectionToServer connectionToServer = new ULocalConnectionToServer();
@@ -143,7 +145,7 @@ namespace Mirror
             }
         }
 
-        static void InitializeTransportHandlers()
+        private static void InitializeTransportHandlers()
         {
             Transport.activeTransport.OnClientConnected.AddListener(OnConnected);
             Transport.activeTransport.OnClientDataReceived.AddListener(OnDataReceived);
@@ -151,12 +153,12 @@ namespace Mirror
             Transport.activeTransport.OnClientError.AddListener(OnError);
         }
 
-        static void OnError(Exception exception)
+        private static void OnError(Exception exception)
         {
             logger.LogException(exception);
         }
 
-        static void OnDisconnected()
+        private static void OnDisconnected()
         {
             connectState = ConnectState.Disconnected;
 
@@ -174,7 +176,7 @@ namespace Mirror
             else logger.LogError("Skipped Data message handling because connection is null.");
         }
 
-        static void OnConnected()
+        private static void OnConnected()
         {
             if (connection != null)
             {
@@ -184,6 +186,7 @@ namespace Mirror
                 // the handler may want to send messages to the client
                 // thus we should set the connected state before calling the handler
                 connectState = ConnectState.Connected;
+                EventManager.OnUpdated += OnRemoteUpdated;
                 NetworkTime.UpdateClient();
                 connection.InvokeHandler(new ConnectMessage(), -1);
             }
@@ -194,7 +197,7 @@ namespace Mirror
         /// Disconnect from server.
         /// <para>The disconnect message will be invoked.</para>
         /// </summary>
-        public static void Disconnect()
+        internal static void Disconnect()
         {
             connectState = ConnectState.Disconnected;
             ClientScene.HandleClientDisconnect(connection);
@@ -207,11 +210,13 @@ namespace Mirror
                     NetworkServer.localConnection.Send(new DisconnectMessage());
                 }
                 NetworkServer.RemoveLocalConnection();
+                EventManager.OnUpdated -= OnLocalUpdated;
             }
             else
             {
                 if (connection != null)
                 {
+                    EventManager.OnUpdated -= OnRemoteUpdated;
                     connection.Disconnect();
                     connection.Dispose();
                     connection = null;
@@ -220,7 +225,7 @@ namespace Mirror
             }
         }
 
-        static void RemoveTransportHandlers()
+        private static void RemoveTransportHandlers()
         {
             // so that we don't register them more than once
             Transport.activeTransport.OnClientConnected.RemoveListener(OnConnected);
@@ -253,21 +258,16 @@ namespace Mirror
             return false;
         }
 
-        public static void Update()
+        private static void OnRemoteUpdated()
         {
-            // local connection?
+            NetworkTime.UpdateClient();
+        }
+
+        private static void OnLocalUpdated()
+        {
             if (connection is ULocalConnectionToServer localConnection)
             {
                 localConnection.Update();
-            }
-            // remote connection?
-            else
-            {
-                // only update things while connected
-                if (active && connectState == ConnectState.Connected)
-                {
-                    NetworkTime.UpdateClient();
-                }
             }
         }
 
@@ -371,7 +371,7 @@ namespace Mirror
         /// Shut down a client.
         /// <para>This should be done when a client is no longer going to be used.</para>
         /// </summary>
-        public static void Shutdown()
+        internal static void Shutdown()
         {
             logger.Log("Shutting down client.");
             ClientScene.Shutdown();

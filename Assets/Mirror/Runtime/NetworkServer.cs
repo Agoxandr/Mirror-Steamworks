@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Agoxandr.Utils;
 using Mirror.RemoteCalls;
 using UnityEngine;
 
@@ -18,10 +19,9 @@ namespace Mirror
     /// </remarks>
     public static class NetworkServer
     {
-        static readonly ILogger logger = LogFactory.GetLogger(typeof(NetworkServer));
-
-        static bool initialized;
-        static int maxConnections;
+        private static readonly ILogger logger = LogFactory.GetLogger(typeof(NetworkServer));
+        private static bool initialized;
+        private static int maxConnections;
 
         /// <summary>
         /// The connection to the host mode client (if any).
@@ -46,7 +46,7 @@ namespace Mirror
         /// <para>Dictionary of the message handlers registered with the server.</para>
         /// <para>The key to the dictionary is the message Id.</para>
         /// </summary>
-        static Dictionary<int, NetworkMessageDelegate> handlers = new Dictionary<int, NetworkMessageDelegate>();
+        private static Dictionary<int, NetworkMessageDelegate> handlers = new Dictionary<int, NetworkMessageDelegate>();
 
         /// <summary>
         /// <para>If you enable this, the server will not listen for incoming connections on the regular network port.</para>
@@ -76,17 +76,7 @@ namespace Mirror
         public static float disconnectInactiveTimeout = 60f;
 
         // cache the Send(connectionIds) list to avoid allocating each time
-        static readonly List<int> connectionIdsCache = new List<int>();
-
-        // Deprecated 02/23/2020
-        /// <summary>
-        /// Reset the NetworkServer singleton.
-        /// </summary>
-        [Obsolete("NetworkServer.Reset was used to reset the singleton, but all it does is set active to false ever since we made NetworkServer static. Use StopServer to stop the server, or Shutdown to fully reset the server.")]
-        public static void Reset()
-        {
-            active = false;
-        }
+        private static readonly List<int> connectionIdsCache = new List<int>();
 
         /// <summary>
         /// This shuts down the server and disconnects all clients.
@@ -114,14 +104,13 @@ namespace Mirror
                 initialized = false;
             }
             dontListen = false;
-            active = false;
             handlers.Clear();
 
             CleanupNetworkIdentities();
             NetworkIdentity.ResetNextNetworkId();
         }
 
-        static void CleanupNetworkIdentities()
+        private static void CleanupNetworkIdentities()
         {
             foreach (NetworkIdentity identity in NetworkIdentity.spawned.Values)
             {
@@ -142,7 +131,7 @@ namespace Mirror
             NetworkIdentity.spawned.Clear();
         }
 
-        static void Initialize()
+        private static void Initialize()
         {
             if (initialized)
                 return;
@@ -180,8 +169,8 @@ namespace Mirror
                 Transport.activeTransport.ServerStart();
                 logger.Log("Server started listening");
             }
-
             active = true;
+            EventManager.OnUpdated += OnUpdated;
             RegisterMessageHandlers();
         }
 
@@ -253,7 +242,7 @@ namespace Mirror
 
         // this is like SendToReady - but it doesn't check the ready flag on the connection.
         // this is used for ObjectDestroy messages.
-        static void SendToObservers<T>(NetworkIdentity identity, T msg, int channelId = Channels.DefaultReliable) where T : IMessageBase
+        private static void SendToObservers<T>(NetworkIdentity identity, T msg, int channelId = Channels.DefaultReliable) where T : IMessageBase
         {
             if (logger.LogEnabled()) logger.Log("Server.SendToObservers id:" + typeof(T));
 
@@ -446,12 +435,13 @@ namespace Mirror
         /// Disconnect all currently connected clients, including the local connection.
         /// <para>This can only be called on the server. Clients will receive the Disconnect message.</para>
         /// </summary>
-        public static void DisconnectAll()
+        private static void DisconnectAll()
         {
             DisconnectAllConnections();
             localConnection = null;
 
             active = false;
+            EventManager.OnUpdated -= OnUpdated;
         }
 
         /// <summary>
@@ -472,11 +462,8 @@ namespace Mirror
         }
 
         // The user should never need to pump the update loop manually
-        public static void Update()
+        public static void OnUpdated()
         {
-            if (!active)
-                return;
-
             // Check for dead clients but exclude the host client because it
             // doesn't ping itself and therefore may appear inactive.
             if (disconnectInactiveConnections)
@@ -507,7 +494,7 @@ namespace Mirror
             }
         }
 
-        static void OnConnected(int connectionId)
+        private static void OnConnected(int connectionId)
         {
             if (logger.LogEnabled()) logger.Log("Server accepted client:" + connectionId);
 
@@ -569,13 +556,13 @@ namespace Mirror
             }
         }
 
-        static void OnDisconnected(NetworkConnection conn)
+        private static void OnDisconnected(NetworkConnection conn)
         {
             conn.InvokeHandler(new DisconnectMessage(), -1);
             if (logger.LogEnabled()) logger.Log("Server lost client:" + conn);
         }
 
-        static void OnDataReceived(int connectionId, ArraySegment<byte> data, int channelId)
+        private static void OnDataReceived(int connectionId, ArraySegment<byte> data, int channelId)
         {
             if (connections.TryGetValue(connectionId, out NetworkConnectionToClient conn))
             {
@@ -587,7 +574,7 @@ namespace Mirror
             }
         }
 
-        static void OnError(int connectionId, Exception exception)
+        private static void OnError(int connectionId, Exception exception)
         {
             // TODO Let's discuss how we will handle errors
             logger.LogException(exception);
@@ -731,7 +718,7 @@ namespace Mirror
             return AddPlayerForConnection(conn, player);
         }
 
-        static void SpawnObserversForConnection(NetworkConnection conn)
+        private static void SpawnObserversForConnection(NetworkConnection conn)
         {
             if (logger.LogEnabled()) logger.Log("Spawning " + NetworkIdentity.spawned.Count + " objects for conn " + conn);
 
@@ -814,7 +801,7 @@ namespace Mirror
             return true;
         }
 
-        static void Respawn(NetworkIdentity identity)
+        private static void Respawn(NetworkIdentity identity)
         {
             if (identity.netId == 0)
             {
@@ -950,7 +937,7 @@ namespace Mirror
         }
 
         // default ready handler.
-        static void OnClientReadyMessage(NetworkConnection conn, ReadyMessage msg)
+        private static void OnClientReadyMessage(NetworkConnection conn, ReadyMessage msg)
         {
             if (logger.LogEnabled()) logger.Log("Default handler for ready message from " + conn);
             SetClientReady(conn);
@@ -961,7 +948,7 @@ namespace Mirror
         /// Obsolete: Removed as a security risk. Use <see cref="RemovePlayerForConnection(NetworkConnection, bool)">NetworkServer.RemovePlayerForConnection</see> instead.
         /// </summary>
         [EditorBrowsable(EditorBrowsableState.Never), Obsolete("Removed as a security risk. Use NetworkServer.RemovePlayerForConnection(NetworkConnection conn, bool keepAuthority = false) instead", true)]
-        static void OnRemovePlayerMessage(NetworkConnection conn, RemovePlayerMessage msg) { }
+        private static void OnRemovePlayerMessage(NetworkConnection conn, RemovePlayerMessage msg) { }
 
         /// <summary>
         /// Removes the player object from the connection
@@ -986,7 +973,7 @@ namespace Mirror
         }
 
         // Handle command from specific player, this could be one of multiple players on a single client
-        static void OnCommandMessage(NetworkConnection conn, CommandMessage msg)
+        private static void OnCommandMessage(NetworkConnection conn, CommandMessage msg)
         {
             if (!NetworkIdentity.spawned.TryGetValue(msg.netId, out NetworkIdentity identity))
             {
@@ -1082,7 +1069,7 @@ namespace Mirror
             }
         }
 
-        static ArraySegment<byte> CreateSpawnMessagePayload(bool isOwner, NetworkIdentity identity, PooledNetworkWriter ownerWriter, PooledNetworkWriter observersWriter)
+        private static ArraySegment<byte> CreateSpawnMessagePayload(bool isOwner, NetworkIdentity identity, PooledNetworkWriter ownerWriter, PooledNetworkWriter observersWriter)
         {
             // Only call OnSerializeAllSafely if there are NetworkBehaviours
             if (identity.NetworkBehaviours.Length == 0)
@@ -1176,7 +1163,7 @@ namespace Mirror
             }
         }
 
-        static bool CheckForPrefab(GameObject obj)
+        private static bool CheckForPrefab(GameObject obj)
         {
 #if UNITY_EDITOR
 #if UNITY_2018_3_OR_NEWER
@@ -1191,7 +1178,7 @@ namespace Mirror
 #endif
         }
 
-        static bool VerifyCanSpawn(GameObject obj)
+        private static bool VerifyCanSpawn(GameObject obj)
         {
             if (CheckForPrefab(obj))
             {
@@ -1202,7 +1189,7 @@ namespace Mirror
             return true;
         }
 
-        static void DestroyObject(NetworkIdentity identity, bool destroyServerObject)
+        private static void DestroyObject(NetworkIdentity identity, bool destroyServerObject)
         {
             if (logger.LogEnabled()) logger.Log("DestroyObject instance:" + identity.netId);
             NetworkIdentity.spawned.Remove(identity.netId);
