@@ -179,10 +179,10 @@ namespace Mirror.Steamworks
             {
                 case (int)SendType.Unreliable:
                 case (int)SendType.NoDelay:
-                    return 1200;
+                    return 1300;
                 case (int)SendType.Reliable:
                 case (int)SendType.NoNagle:
-                    return 1048576;
+                    return 524288;
                 default:
                     throw new NotSupportedException();
             }
