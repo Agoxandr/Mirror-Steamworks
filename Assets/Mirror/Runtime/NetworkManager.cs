@@ -1198,13 +1198,6 @@ namespace Mirror
             OnServerAddPlayer(conn);
         }
 
-        // Deprecated 5/2/2020
-        /// <summary>
-        /// Obsolete: Removed as a security risk. Use <see cref="NetworkServer.RemovePlayerForConnection(NetworkConnection, bool)">NetworkServer.RemovePlayerForConnection</see> instead.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never), Obsolete("Removed as a security risk. Use NetworkServer.RemovePlayerForConnection(NetworkConnection conn, bool keepAuthority = false) instead", true)]
-        private void OnServerRemovePlayerMessageInternal(NetworkConnection conn, RemovePlayerMessage msg) { }
-
         private void OnServerErrorInternal(NetworkConnection conn, ErrorMessage msg)
         {
             logger.Log("NetworkManager.OnServerErrorInternal");
@@ -1336,13 +1329,6 @@ namespace Mirror
 
             NetworkServer.AddPlayerForConnection(conn, player);
         }
-
-        // Deprecated 5/2/2020
-        /// <summary>
-        /// Obsolete: Removed as a security risk. Use <see cref="NetworkServer.RemovePlayerForConnection(NetworkConnection, bool)">NetworkServer.RemovePlayerForConnection</see> instead.
-        /// </summary>
-        [EditorBrowsable(EditorBrowsableState.Never), Obsolete("Removed as a security risk. Use NetworkServer.RemovePlayerForConnection(NetworkConnection conn, bool keepAuthority = false) instead", true)]
-        public virtual void OnServerRemovePlayer(NetworkConnection conn, NetworkIdentity player) { }
 
         /// <summary>
         /// Called on the server when a network error occurs for a client connection.
