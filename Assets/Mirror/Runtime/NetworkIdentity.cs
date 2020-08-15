@@ -49,10 +49,10 @@ namespace Mirror
     [HelpURL("https://mirror-networking.com/docs/Components/NetworkIdentity.html")]
     public sealed class NetworkIdentity : MonoBehaviour
     {
-        static readonly ILogger logger = LogFactory.GetLogger<NetworkIdentity>();
+        private static readonly ILogger logger = LogFactory.GetLogger<NetworkIdentity>();
 
         // configuration
-        NetworkBehaviour[] networkBehavioursCache;
+        private NetworkBehaviour[] networkBehavioursCache;
 
         /// <summary>
         /// Returns true if running as a client and this object was spawned by a server.
@@ -120,7 +120,7 @@ namespace Mirror
         /// </summary>
         public NetworkConnection connectionToServer { get; internal set; }
 
-        NetworkConnectionToClient _connectionToClient;
+        private NetworkConnectionToClient _connectionToClient;
 
         /// <summary>
         /// The NetworkConnection associated with this <see cref="NetworkIdentity">NetworkIdentity.</see> This is valid for player and other owned objects in the server.
@@ -157,7 +157,7 @@ namespace Mirror
             }
         }
 
-        void CreateNetworkBehavioursCache()
+        private void CreateNetworkBehavioursCache()
         {
             networkBehavioursCache = GetComponents<NetworkBehaviour>();
             if (NetworkBehaviours.Length > 64)
@@ -170,7 +170,7 @@ namespace Mirror
 
 
         // NetworkProximityChecker caching
-        NetworkVisibility visibilityCache;
+        private NetworkVisibility visibilityCache;
         public NetworkVisibility visibility
         {
             get
@@ -183,7 +183,7 @@ namespace Mirror
             }
         }
 
-        [SerializeField, HideInInspector] string m_AssetId;
+        [SerializeField, HideInInspector] private string m_AssetId;
 
         // the AssetId trick:
         // - ideally we would have a serialized 'Guid m_AssetId' but Unity can't
@@ -215,32 +215,35 @@ namespace Mirror
                 string newAssetIdString = value == Guid.Empty ? string.Empty : value.ToString("N");
                 string oldAssetIdSrting = m_AssetId;
 
-                if (oldAssetIdSrting != newAssetIdString)
+                // they are the same, do nothing
+                if (oldAssetIdSrting == newAssetIdString)
                 {
-                    // new is empty
-                    if (string.IsNullOrEmpty(newAssetIdString))
-                    {
-                        logger.LogError($"Can not set AssetId to empty guid on NetworkIdentity '{name}', old assetId '{oldAssetIdSrting}'");
-                        return;
-                    }
-
-                    // old not empty
-                    if (!string.IsNullOrEmpty(oldAssetIdSrting))
-                    {
-                        logger.LogError($"Can not Set AssetId on NetworkIdentity '{name}' becasue it already had an assetId, current assetId '{oldAssetIdSrting}', attempted new assetId '{newAssetIdString}'");
-                        return;
-                    }
-
-                    // old is empty
-                    m_AssetId = newAssetIdString;
-
-                    if (logger.LogEnabled()) logger.Log($"Settings AssetId on NetworkIdentity '{name}', new assetId '{newAssetIdString}'");
+                    return;
                 }
+
+                // new is empty
+                if (string.IsNullOrEmpty(newAssetIdString))
+                {
+                    logger.LogError($"Can not set AssetId to empty guid on NetworkIdentity '{name}', old assetId '{oldAssetIdSrting}'");
+                    return;
+                }
+
+                // old not empty
+                if (!string.IsNullOrEmpty(oldAssetIdSrting))
+                {
+                    logger.LogError($"Can not Set AssetId on NetworkIdentity '{name}' becasue it already had an assetId, current assetId '{oldAssetIdSrting}', attempted new assetId '{newAssetIdString}'");
+                    return;
+                }
+
+                // old is empty
+                m_AssetId = newAssetIdString;
+
+                if (logger.LogEnabled()) logger.Log($"Settings AssetId on NetworkIdentity '{name}', new assetId '{newAssetIdString}'");
             }
         }
 
         // keep track of all sceneIds to detect scene duplicates
-        static readonly Dictionary<ulong, NetworkIdentity> sceneIds = new Dictionary<ulong, NetworkIdentity>();
+        private static readonly Dictionary<ulong, NetworkIdentity> sceneIds = new Dictionary<ulong, NetworkIdentity>();
 
         /// <summary>
         /// Gets the NetworkIdentity from the sceneIds dictionary with the corresponding id
@@ -263,7 +266,7 @@ namespace Mirror
             connectionToClient = (NetworkConnectionToClient)conn;
         }
 
-        static uint nextNetworkId = 1;
+        private static uint nextNetworkId = 1;
         internal static uint GetNextNetworkId() => nextNetworkId++;
 
         /// <summary>
@@ -293,10 +296,10 @@ namespace Mirror
         }
 
         // hasSpawned should always be false before runtime
-        [SerializeField, HideInInspector] bool hasSpawned;
+        [SerializeField, HideInInspector] private bool hasSpawned;
         public bool SpawnedFromInstantiate { get; private set; }
 
-        void Awake()
+        private void Awake()
         {
             if (hasSpawned)
             {
@@ -309,7 +312,7 @@ namespace Mirror
             hasSpawned = true;
         }
 
-        void OnValidate()
+        private void OnValidate()
         {
             // OnValidate is not called when using Instantiate, so we can use
             // it to make sure that hasSpawned is false
@@ -321,12 +324,12 @@ namespace Mirror
         }
 
 #if UNITY_EDITOR
-        void AssignAssetID(GameObject prefab) => AssignAssetID(AssetDatabase.GetAssetPath(prefab));
-        void AssignAssetID(string path) => m_AssetId = AssetDatabase.AssetPathToGUID(path);
+        private void AssignAssetID(GameObject prefab) => AssignAssetID(AssetDatabase.GetAssetPath(prefab));
+        private void AssignAssetID(string path) => m_AssetId = AssetDatabase.AssetPathToGUID(path);
 
-        bool ThisIsAPrefab() => PrefabUtility.IsPartOfPrefabAsset(gameObject);
+        private bool ThisIsAPrefab() => PrefabUtility.IsPartOfPrefabAsset(gameObject);
 
-        bool ThisIsASceneObjectWithPrefabParent(out GameObject prefab)
+        private bool ThisIsASceneObjectWithPrefabParent(out GameObject prefab)
         {
             prefab = null;
 
@@ -344,7 +347,7 @@ namespace Mirror
             return true;
         }
 
-        static uint GetRandomUInt()
+        private static uint GetRandomUInt()
         {
             // use Crypto RNG to avoid having time based duplicates
             using (RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider())
@@ -398,7 +401,7 @@ namespace Mirror
         // * sceneIds should never be generated temporarily for unopened scenes
         //   when building, otherwise editor and build get out of sync
         //   => BuildPipeline.isBuildingPlayer check solves that
-        void AssignSceneID()
+        private void AssignSceneID()
         {
             // we only ever assign sceneIds at edit time, never at runtime.
             // by definition, only the original scene objects should get one.
@@ -478,7 +481,7 @@ namespace Mirror
             if (logger.LogEnabled()) logger.Log(name + " in scene=" + gameObject.scene.name + " scene index hash(" + pathHash.ToString("X") + ") copied into sceneId: " + sceneId.ToString("X"));
         }
 
-        void SetupIDs()
+        private void SetupIDs()
         {
             if (ThisIsAPrefab())
             {
@@ -530,7 +533,7 @@ namespace Mirror
 
         // Unity will Destroy all networked objects on Scene Change, so we have to handle that here silently.
         // That means we cannot have any warning or logging in this method.
-        void OnDestroy()
+        private void OnDestroy()
         {
             // Objects spawned from Instantiate are not allowed so are destroyed right away
             // we don't want to call NetworkServer.Destroy if this is the case
@@ -622,7 +625,7 @@ namespace Mirror
             }
         }
 
-        bool clientStarted;
+        private bool clientStarted;
         internal void OnStartClient()
         {
             if (clientStarted)
@@ -651,7 +654,7 @@ namespace Mirror
             }
         }
 
-        static NetworkIdentity previousLocalPlayer = null;
+        private static NetworkIdentity previousLocalPlayer = null;
         internal void OnStartLocalPlayer()
         {
             if (previousLocalPlayer == this)
@@ -676,7 +679,7 @@ namespace Mirror
             }
         }
 
-        bool hadAuthority;
+        private bool hadAuthority;
         internal void NotifyAuthority()
         {
             if (!hadAuthority && hasAuthority)
@@ -787,7 +790,7 @@ namespace Mirror
         // -> OnDeserialize carefully extracts each data, then deserializes each component with separate readers
         //    -> it will be impossible to read too many or too few bytes in OnDeserialize
         //    -> we can properly track down errors
-        bool OnSerializeSafely(NetworkBehaviour comp, NetworkWriter writer, bool initialState)
+        private bool OnSerializeSafely(NetworkBehaviour comp, NetworkWriter writer, bool initialState)
         {
             // write placeholder length bytes
             // (jumping back later is WAY faster than allocating a temporary
@@ -929,7 +932,7 @@ namespace Mirror
             return mask;
         }
 
-        void OnDeserializeSafely(NetworkBehaviour comp, NetworkReader reader, bool initialState)
+        private void OnDeserializeSafely(NetworkBehaviour comp, NetworkReader reader, bool initialState)
         {
             // read header as 4 bytes and calculate this chunk's start+end
             int contentSize = reader.ReadInt32();
@@ -986,7 +989,7 @@ namespace Mirror
         }
 
         // helper function to handle SyncEvent/Command/Rpc
-        void HandleRemoteCall(int componentIndex, int functionHash, MirrorInvokeType invokeType, NetworkReader reader, NetworkConnectionToClient senderConnection = null)
+        private void HandleRemoteCall(int componentIndex, int functionHash, MirrorInvokeType invokeType, NetworkReader reader, NetworkConnectionToClient senderConnection = null)
         {
             // check if unity object has been destroyed
             if (this == null)
@@ -1122,7 +1125,7 @@ namespace Mirror
             }
         }
 
-        static readonly HashSet<NetworkConnection> newObservers = new HashSet<NetworkConnection>();
+        private static readonly HashSet<NetworkConnection> newObservers = new HashSet<NetworkConnection>();
 
         /// <summary>
         /// This causes the set of players that can see this object to be rebuild. The OnRebuildObservers callback function will be invoked on each NetworkBehaviour.
@@ -1347,7 +1350,7 @@ namespace Mirror
             }
         }
 
-        void SendUpdateVarsMessage(ulong dirtyComponentsMask)
+        private void SendUpdateVarsMessage(ulong dirtyComponentsMask)
         {
             // one writer for owner, one for observers
             using (PooledNetworkWriter ownerWriter = NetworkWriterPool.GetWriter(), observersWriter = NetworkWriterPool.GetWriter())
@@ -1416,7 +1419,7 @@ namespace Mirror
             }
         }
 
-        void ResetSyncObjects()
+        private void ResetSyncObjects()
         {
             foreach (NetworkBehaviour comp in NetworkBehaviours)
             {

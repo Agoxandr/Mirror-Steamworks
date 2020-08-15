@@ -1,15 +1,16 @@
 {
-    "name": "de.agoxandr.mirror-steamworks",
-    "displayName": "Mirror Steamworks",
-    "version": "16.5.3",
-    "description": "Mirror Networking for Facepunch Steamworks.",
-    "keywords": [
-        "Mirror",
-        "Steamworks",
-        "Agoxandr"
-    ],
-    "dependencies": {
-        "de.agoxandr.utils": "1.0.0",
-        "nuget.mono-cecil": "0.1.6-preview"
-    }
+  "name": "de.agoxandr.mirror-steamworks",
+  "displayName": "Mirror Steamworks",
+  "version": "16.10.4",
+  "description": "Mirror Networking for Facepunch Steamworks.",
+  "keywords": [
+    "Mirror",
+    "Steamworks",
+    "Agoxandr"
+  ],
+  "dependencies": {
+    "de.agoxandr.utils": "1.0.0",
+    "nuget.mono-cecil": "0.1.6-preview",
+    "com.facepunch.steamworks": "2.3.2"
+  }
 }

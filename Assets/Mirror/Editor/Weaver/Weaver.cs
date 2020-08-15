@@ -8,7 +8,7 @@ using Mono.Cecil.Cil;
 namespace Mirror.Weaver
 {
     // This data is flushed each time - if we are run multiple times in the same process/domain
-    class WeaverLists
+    internal class WeaverLists
     {
         // setter functions that replace [SyncVar] member variable references. dict<field, replacement>
         public Dictionary<FieldDefinition, MethodDefinition> replacementSetterProperties = new Dictionary<FieldDefinition, MethodDefinition>();
@@ -29,6 +29,8 @@ namespace Mirror.Weaver
 
     internal static class Weaver
     {
+        public static string InvokeRpcPrefix => "InvokeUserCode_";
+        public static string SyncEventPrefix => "SendEventMessage_";
         public static WeaverLists WeaveLists { get; private set; }
         public static AssemblyDefinition CurrentAssembly { get; private set; }
         public static ModuleDefinition CorLibModule { get; private set; }
@@ -38,7 +40,7 @@ namespace Mirror.Weaver
         public static bool GenerateLogErrors { get; set; }
 
         // private properties
-        static readonly bool DebugLogEnabled = true;
+        private static readonly bool DebugLogEnabled = true;
 
         // Network types
         public static TypeReference NetworkBehaviourType;
@@ -191,7 +193,7 @@ namespace Mirror.Weaver
             }
         }
 
-        static bool ProcessNetworkBehaviourType(TypeDefinition td)
+        private static bool ProcessNetworkBehaviourType(TypeDefinition td)
         {
             if (!NetworkBehaviourProcessor.WasProcessed(td))
             {
@@ -204,7 +206,7 @@ namespace Mirror.Weaver
             return false;
         }
 
-        static void SetupUnityTypes()
+        private static void SetupUnityTypes()
         {
             gameObjectType = UnityAssembly.MainModule.GetType("UnityEngine.GameObject");
             transformType = UnityAssembly.MainModule.GetType("UnityEngine.Transform");
@@ -220,7 +222,7 @@ namespace Mirror.Weaver
             SyncObjectType = NetAssembly.MainModule.GetType("Mirror.SyncObject");
         }
 
-        static void SetupCorLib()
+        private static void SetupCorLib()
         {
             AssemblyNameReference name = AssemblyNameReference.Parse("mscorlib");
             ReaderParameters parameters = new ReaderParameters
@@ -230,7 +232,7 @@ namespace Mirror.Weaver
             CorLibModule = CurrentAssembly.MainModule.AssemblyResolver.Resolve(name, parameters).MainModule;
         }
 
-        static TypeReference ImportCorLibType(string fullName)
+        private static TypeReference ImportCorLibType(string fullName)
         {
             TypeDefinition type = CorLibModule.GetType(fullName) ?? CorLibModule.ExportedTypes.First(t => t.FullName == fullName).Resolve();
             if (type != null)
@@ -241,7 +243,7 @@ namespace Mirror.Weaver
             return null;
         }
 
-        static void SetupTargetTypes()
+        private static void SetupTargetTypes()
         {
             // system types
             SetupCorLib();
@@ -343,7 +345,7 @@ namespace Mirror.Weaver
             return td.IsDerivedFrom(NetworkBehaviourType);
         }
 
-        static void CheckMonoBehaviour(TypeDefinition td)
+        private static void CheckMonoBehaviour(TypeDefinition td)
         {
             if (td.IsDerivedFrom(MonoBehaviourType))
             {
@@ -351,7 +353,7 @@ namespace Mirror.Weaver
             }
         }
 
-        static bool WeaveNetworkBehavior(TypeDefinition td)
+        private static bool WeaveNetworkBehavior(TypeDefinition td)
         {
             if (!td.IsClass)
                 return false;
@@ -394,7 +396,7 @@ namespace Mirror.Weaver
             return modified;
         }
 
-        static bool WeaveMessage(TypeDefinition td)
+        private static bool WeaveMessage(TypeDefinition td)
         {
             if (!td.IsClass)
                 return false;
@@ -403,6 +405,19 @@ namespace Mirror.Weaver
 
             if (td.ImplementsInterface(IMessageBaseType))
             {
+                // process this and base classes from parent to child order
+                try
+                {
+                    TypeDefinition parent = td.BaseType.Resolve();
+                    // process parent
+                    WeaveMessage(parent);
+                }
+                catch (AssemblyResolutionException)
+                {
+                    // this can happen for plugins.
+                    //Console.WriteLine("AssemblyResolutionException: "+ ex.ToString());
+                }
+                // process this
                 MessageClassProcessor.Process(td);
                 modified = true;
             }
@@ -416,7 +431,7 @@ namespace Mirror.Weaver
             return modified;
         }
 
-        static bool WeaveSyncObject(TypeDefinition td)
+        private static bool WeaveSyncObject(TypeDefinition td)
         {
             bool modified = false;
 
@@ -460,7 +475,7 @@ namespace Mirror.Weaver
             return modified;
         }
 
-        static bool Weave(string assName, IEnumerable<string> dependencies, string unityEngineDLLPath, string mirrorNetDLLPath, string outputDir)
+        private static bool Weave(string assName, IEnumerable<string> dependencies, string unityEngineDLLPath, string mirrorNetDLLPath, string outputDir)
         {
             using (DefaultAssemblyResolver asmResolver = new DefaultAssemblyResolver())
             using (CurrentAssembly = AssemblyDefinition.ReadAssembly(assName, new ReaderParameters { ReadWrite = true, ReadSymbols = true, AssemblyResolver = asmResolver }))
@@ -527,7 +542,7 @@ namespace Mirror.Weaver
             return true;
         }
 
-        static bool WeaveModule(ModuleDefinition moduleDefinition)
+        private static bool WeaveModule(ModuleDefinition moduleDefinition)
         {
             try
             {
